@@ -1,21 +1,17 @@
 class Product:
-    def __init__(self, catalog=None):
-        self.products = catalog.products if catalog else []
-        self.next_id = max([p['id'] for p in self.products], default=0) + 1
-        self.cart = []  # Корзина для покупок
-        self.discount_rules = []  # Правила скидок
-        self.tax_rate = 0.20  # Стандартная ставка налога 20%
-        self.catalog = catalog  # Сохраняем переданный каталог
+    def __init__(self):
+        self.products = []
+        self.next_id = 1
 
-    # Методы для работы с каталогом
     def _find_product_by_id(self, product_id):
-
+        """Поиск товара по ID"""
         for product in self.products:
             if product['id'] == product_id:
                 return product
         return None
 
     def add_product(self, name, category, price, weight, description):
+        """Добавление товара в каталог"""
         product = {
             'id': self.next_id,
             'name': name,
@@ -30,6 +26,7 @@ class Product:
         return product['id']
 
     def edit_product(self, product_id, **kwargs):
+        """Редактирование товара"""
         product = self._find_product_by_id(product_id)
         if not product:
             print(f"Товар с ID {product_id} не найден.")
@@ -59,23 +56,17 @@ class Product:
         print(f"Товар '{product['name']}' (ID: {product_id}) удален из каталога.")
         return True
 
-    def get_total_products(self):
-        """Получение общего количества товаров"""
-        return len(self.products)
-
     def get_product_info(self, product_id):
-        """Получение полной информации о товаре"""
+        """Получение информации о товаре"""
         product = self._find_product_by_id(product_id)
         if not product:
             print(f"Товар с ID {product_id} не найден.")
             return None
-
         return product
 
     def display_catalog(self):
         """Отображение каталога товаров"""
         print("\n=== КАТАЛОГ ТОВАРОВ ===")
-        # Используем self.products вместо self.catalog.products
         for product in self.products:
             print(f"\nID: {product['id']}")
             print(f"Название: {product['name']}")
@@ -86,35 +77,43 @@ class Product:
         print("\n=======================")
 
 
-    # Методы для работы с корзиной
-    def add_to_cart(self, product_id, quantity=1):
+class Cart:
+    """Класс для управления корзиной покупок"""
+
+    def __init__(self, product_catalog):
+        self.items = []
+        self.product_catalog = product_catalog
+        self.discount_rules = []
+        self.tax_rate = 0.20
+
+    def add_item(self, product_id, quantity=1):
         """Добавление товара в корзину"""
-        product = self._find_product_by_id(product_id)
+        product = self.product_catalog._find_product_by_id(product_id)
         if not product:
             print(f"Товар с ID {product_id} не найден.")
             return False
 
         # Проверяем, есть ли уже такой товар в корзине
-        for item in self.cart:
+        for item in self.items:
             if item['product']['id'] == product_id:
                 item['quantity'] += quantity
                 print(f"Количество товара '{product['name']}' в корзине увеличено до {item['quantity']}.")
                 return True
 
         # Если товара еще нет в корзине
-        self.cart.append({
+        self.items.append({
             'product': product,
             'quantity': quantity
         })
         print(f"Товар '{product['name']}' добавлен в корзину.")
         return True
 
-    def remove_from_cart(self, product_id, quantity=None):
+    def remove_item(self, product_id, quantity=None):
         """Удаление товара из корзины"""
-        for item in self.cart[:]:
+        for item in self.items[:]:
             if item['product']['id'] == product_id:
                 if quantity is None or quantity >= item['quantity']:
-                    self.cart.remove(item)
+                    self.items.remove(item)
                     print(f"Товар '{item['product']['name']}' полностью удален из корзины.")
                 else:
                     item['quantity'] -= quantity
@@ -124,16 +123,21 @@ class Product:
         print(f"Товар с ID {product_id} не найден в корзине.")
         return False
 
-    def display_cart(self):
+    def clear(self):
+        """Очистка корзины"""
+        self.items = []
+        print("Корзина очищена.")
+
+    def display(self):
         """Отображение содержимого корзины"""
         print("\n=== ВАША КОРЗИНА ===")
-        if not self.cart:
+        if not self.items:
             print("Корзина пуста.")
         else:
             total_price = 0
             total_weight = 0
 
-            for item in self.cart:
+            for item in self.items:
                 product = item['product']
                 subtotal = product['price'] * item['quantity']
                 total_price += subtotal
@@ -152,29 +156,97 @@ class Product:
             print(f"Общий вес: {total_weight:.2f} кг")
         print("\n===================")
 
-    def clear_cart(self):
-        """Очистка корзины"""
-        self.cart = []
-        print("Корзина очищена.")
+    def calculate_subtotal(self):
+        """Расчет суммы без учета скидок и налогов"""
+        return sum(item['product']['price'] * item['quantity'] for item in self.items)
 
-    def get_cart_total(self):
-        """Получение общей стоимости корзины"""
-        return sum(item['product']['price'] * item['quantity'] for item in self.cart)
+    def add_discount_rule(self, rule_type, value=None, threshold=None, discount_type=None, discount_value=None):
+        """Добавление правила скидки"""
+        rule = {'type': rule_type}
 
-    def sort_cart(self, algorithm='quick', key='price', reverse=False):
-        """
-        Сортировка корзины с выбором алгоритма и параметров
+        if rule_type == 'percentage':
+            rule['value'] = float(value)
+        elif rule_type == 'fixed':
+            rule['value'] = float(value)
+        elif rule_type == 'threshold':
+            rule['threshold'] = float(threshold)
+            rule['discount_type'] = discount_type
+            rule['discount_value'] = float(discount_value)
+        else:
+            raise ValueError("Неизвестный тип скидки")
 
-        Параметры:
-        algorithm - алгоритм сортировки ('bubble', 'insertion', 'quick', 'merge')
-        key - поле для сортировки ('price', 'weight', 'category', 'name')
-        reverse - порядок сортировки (False - возрастание, True - убывание)
-        """
-        if not self.cart:
-            print("Корзина пуста, сортировка не требуется.")
-            return
+        self.discount_rules.append(rule)
+        print(f"Добавлено правило скидки: {rule}")
 
-        # Выбираем ключ для сортировки
+    def _apply_discounts(self, subtotal):
+        """Применение скидок к сумме"""
+        total_discount = 0
+
+        for rule in self.discount_rules:
+            if rule['type'] == 'percentage':
+                discount = subtotal * rule['value'] / 100
+                total_discount += discount
+            elif rule['type'] == 'fixed':
+                total_discount += rule['value']
+            elif rule['type'] == 'threshold':
+                if subtotal >= rule['threshold']:
+                    if rule['discount_type'] == 'percentage':
+                        discount = subtotal * rule['discount_value'] / 100
+                    else:
+                        discount = rule['discount_value']
+                    total_discount += discount
+
+        return min(total_discount, subtotal)
+
+    def set_tax_rate(self, rate):
+        """Установка ставки налога"""
+        self.tax_rate = float(rate)
+        print(f"Ставка налога установлена: {rate * 100}%")
+
+    def calculate_total(self, include_tax=True, apply_discounts=True):
+        """Расчет итоговой суммы"""
+        if not self.items:
+            return {
+                'subtotal': 0,
+                'discounts': 0,
+                'tax': 0,
+                'total': 0
+            }
+
+        subtotal = self.calculate_subtotal()
+        discounts = self._apply_discounts(subtotal) if apply_discounts else 0
+        amount_after_discounts = subtotal - discounts
+        tax = amount_after_discounts * self.tax_rate if include_tax else 0
+        total = amount_after_discounts + tax
+
+        return {
+            'subtotal': subtotal,
+            'discounts': discounts,
+            'tax': tax,
+            'total': total
+        }
+
+    def display_totals(self):
+        """Отображение итоговой суммы с детализацией"""
+        totals = self.calculate_total()
+
+        print("\n=== ИТОГОВАЯ СУММА ===")
+        print(f"Общая стоимость товаров: {totals['subtotal']:.2f} руб.")
+        print(f"Скидки: -{totals['discounts']:.2f} руб.")
+        print(f"Сумма после скидок: {totals['subtotal'] - totals['discounts']:.2f} руб.")
+        print(f"Налог ({self.tax_rate * 100}%): {totals['tax']:.2f} руб.")
+        print(f"ИТОГО К ОПЛАТЕ: {totals['total']:.2f} руб.")
+        print("======================")
+
+
+class Sorter:
+    """Класс для сортировки товаров в корзине"""
+
+    @staticmethod
+    def sort(items, algorithm='quick', key='price', reverse=False):
+        if not items:
+            return items
+
         key_func = {
             'price': lambda x: x['product']['price'],
             'weight': lambda x: x['product']['weight'],
@@ -182,45 +254,32 @@ class Product:
             'name': lambda x: x['product']['name']
         }.get(key.lower(), lambda x: x['product']['price'])
 
-        # Выбираем алгоритм сортировки
         algorithms = {
-            'bubble': self._bubble_sort,
-            'insertion': self._insertion_sort,
-            'quick': self._quick_sort,
-            'merge': self._merge_sort
+            'bubble': Sorter._bubble_sort,
+            'insertion': Sorter._insertion_sort,
+            'quick': Sorter._quick_sort,
+            'merge': Sorter._merge_sort
         }
 
         if algorithm.lower() not in algorithms:
             print(f"Алгоритм '{algorithm}' не поддерживается. Используется быстрая сортировка.")
             algorithm = 'quick'
 
-        print(f"\nСортировка корзины с помощью {algorithms[algorithm].__name__} по {key} "
-              f"({'убывание' if reverse else 'возрастание'})")
+        return algorithms[algorithm](items, key_func, reverse)
 
-        # Создаем копию списка для сортировки
-        items_to_sort = self.cart.copy()
-
-        # Выполняем сортировку
-        sorted_items = algorithms[algorithm](items_to_sort, key_func, reverse)
-
-        # Обновляем корзину
-        self.cart = sorted_items
-        print("Корзина успешно отсортирована.")
-
-        # Реализации алгоритмов сортировки
-
-    def _bubble_sort(self, items, key, reverse=False):
+    @staticmethod
+    def _bubble_sort(items, key, reverse=False):
         n = len(items)
         for i in range(n - 1):
             for j in range(0, n - i - 1):
                 a = key(items[j])
                 b = key(items[j + 1])
-
                 if (a > b and not reverse) or (a < b and reverse):
                     items[j], items[j + 1] = items[j + 1], items[j]
         return items
 
-    def _insertion_sort(self, items, key, reverse=False):
+    @staticmethod
+    def _insertion_sort(items, key, reverse=False):
         for i in range(1, len(items)):
             current = items[i]
             j = i - 1
@@ -233,7 +292,8 @@ class Product:
             items[j + 1] = current
         return items
 
-    def _quick_sort(self, items, key, reverse=False):
+    @staticmethod
+    def _quick_sort(items, key, reverse=False):
         if len(items) <= 1:
             return items
 
@@ -243,19 +303,21 @@ class Product:
         middle = [x for x in items if key(x) == pivot_key]
         right = [x for x in items if (key(x) > pivot_key) ^ reverse]
 
-        return self._quick_sort(left, key, reverse) + middle + self._quick_sort(right, key, reverse)
+        return Sorter._quick_sort(left, key, reverse) + middle + Sorter._quick_sort(right, key, reverse)
 
-    def _merge_sort(self, items, key, reverse=False):
+    @staticmethod
+    def _merge_sort(items, key, reverse=False):
         if len(items) <= 1:
             return items
 
         mid = len(items) // 2
-        left = self._merge_sort(items[:mid], key, reverse)
-        right = self._merge_sort(items[mid:], key, reverse)
+        left = Sorter._merge_sort(items[:mid], key, reverse)
+        right = Sorter._merge_sort(items[mid:], key, reverse)
 
-        return self._merge(left, right, key, reverse)
+        return Sorter._merge(left, right, key, reverse)
 
-    def _merge(self, left, right, key, reverse):
+    @staticmethod
+    def _merge(left, right, key, reverse):
         result = []
         i = j = 0
 
@@ -274,206 +336,61 @@ class Product:
         result.extend(right[j:])
         return result
 
-    def calculate_total(self, include_tax=True, apply_discounts=True):
-        """
-        Расчет общей стоимости товаров в корзине с учетом налогов и скидок
-
-        Параметры:
-        include_tax - учитывать ли налог (по умолчанию True)
-        apply_discounts - применять ли скидки (по умолчанию True)
-
-        Возвращает словарь с различными суммами:
-        {
-            'subtotal': общая стоимость без налогов и скидок,
-            'discounts': сумма скидок,
-            'tax': сумма налога,
-            'total': итоговая сумма к оплате
-        }
-        """
-        if not self.cart:
-            return {
-                'subtotal': 0,
-                'discounts': 0,
-                'tax': 0,
-                'total': 0
-            }
-
-        # Рассчитываем базовую стоимость
-        subtotal = sum(item['product']['price'] * item['quantity'] for item in self.cart)
-
-        # Применяем скидки
-        discounts = 0
-        if apply_discounts:
-            discounts = self._apply_discounts(subtotal)
-
-        # Рассчитываем сумму после скидок
-        amount_after_discounts = subtotal - discounts
-
-        # Рассчитываем налог
-        tax = 0
-        if include_tax:
-            tax = amount_after_discounts * self.tax_rate
-
-        # Итоговая сумма
-        total = amount_after_discounts + tax
-
-        return {
-            'subtotal': subtotal,
-            'discounts': discounts,
-            'tax': tax,
-            'total': total
-        }
-
-    def _apply_discounts(self, subtotal):
-        """Внутренний метод для применения всех активных скидок"""
-        total_discount = 0
-
-        for rule in self.discount_rules:
-            if rule['type'] == 'percentage':
-                # Скидка в процентах от суммы
-                discount = subtotal * rule['value'] / 100
-                total_discount += discount
-            elif rule['type'] == 'fixed':
-                # Фиксированная скидка
-                total_discount += rule['value']
-            elif rule['type'] == 'threshold':
-                # Скидка при превышении порога
-                if subtotal >= rule['threshold']:
-                    if rule['discount_type'] == 'percentage':
-                        discount = subtotal * rule['discount_value'] / 100
-                    else:
-                        discount = rule['discount_value']
-                    total_discount += discount
-
-        # Не позволяем скидке превысить сумму заказа
-        return min(total_discount, subtotal)
-
-    def add_discount_rule(self, rule_type, value=None, threshold=None, discount_type=None, discount_value=None):
-        """
-        Добавление правила скидки
-
-        Поддерживаемые типы скидок:
-        1. Процентная скидка: {'type': 'percentage', 'value': 10} - 10% скидка
-        2. Фиксированная скидка: {'type': 'fixed', 'value': 500} - скидка 500 руб.
-        3. Пороговая скидка: {'type': 'threshold', 'threshold': 10000,
-                              'discount_type': 'percentage/fixed',
-                              'discount_value': 10/500}
-                              - при заказе от 10000 руб. скидка 10% или 500 руб.
-        """
-        rule = {'type': rule_type}
-
-        if rule_type == 'percentage':
-            rule['value'] = float(value)
-        elif rule_type == 'fixed':
-            rule['value'] = float(value)
-        elif rule_type == 'threshold':
-            rule['threshold'] = float(threshold)
-            rule['discount_type'] = discount_type
-            rule['discount_value'] = float(discount_value)
-        else:
-            raise ValueError("Неизвестный тип скидки")
-
-        self.discount_rules.append(rule)
-        print(f"Добавлено правило скидки: {rule}")
-
-    def set_tax_rate(self, rate):
-        """Установка ставки налога (в десятичном формате, например 0.20 для 20%)"""
-        self.tax_rate = float(rate)
-        print(f"Ставка налога установлена: {rate * 100}%")
-
-    def display_totals(self):
-        """Отображение итоговой суммы с детализацией"""
-        totals = self.calculate_total()
-
-        print("\n=== ИТОГОВАЯ СУММА ===")
-        print(f"Общая стоимость товаров: {totals['subtotal']:.2f} руб.")
-        print(f"Скидки: -{totals['discounts']:.2f} руб.")
-        print(f"Сумма после скидок: {totals['subtotal'] - totals['discounts']:.2f} руб.")
-        print(f"Налог ({self.tax_rate * 100}%): {totals['tax']:.2f} руб.")
-        print(f"ИТОГО К ОПЛАТЕ: {totals['total']:.2f} руб.")
-        print("======================")
-
-    def main_menu(self):
-        while True:
-            print("\n=== ГЛАВНОЕ МЕНЮ ===")
-            print("1. Просмотр каталога товаров")
-            print("2. Добавить товар в корзину")
-            print("3. Удалить товар из корзины")
-            print("4. Просмотр корзины")
-            print("5. Сортировка корзины")
-            print("6. Расчет итоговой суммы")
-            print("7. Выход")
-
-            choice = input("Выберите действие: ")
-
-            if choice == '1':
-                self.display_catalog()
-            elif choice == '2':
-                self.add_to_cart_interface()
-            elif choice == '3':
-                self.remove_from_cart_interface()
-            elif choice == '4':
-                self.display_cart()
-            elif choice == '5':
-                self.sort_cart_interface()
-            elif choice == '6':
-                self.display_totals()
-            elif choice == '7':
-                print("До свидания!")
-                break
-            else:
-                print("Неверный ввод, попробуйте еще раз.")
-
 
 class TextInterface:
-    """Класс для текстового интерфейса"""
+    def __init__(self):
+        self.product_catalog = Product()
+        self.cart = Cart(self.product_catalog)
+        self._initialize_sample_data()
 
-    def __init__(self, catalog):
-        self.catalog = catalog
+    def _initialize_sample_data(self):
+        """Инициализация тестовых данных"""
+        # Добавляем тестовые товары
+        self.product_catalog.add_product(
+            name="Смартфон Samsung Galaxy S21",
+            category="Смартфоны",
+            price=69990,
+            weight=0.17,
+            description="Флагманский смартфон с AMOLED-экраном и тройной камерой"
+        )
+        self.product_catalog.add_product(
+            name="Ноутбук ASUS VivoBook 15",
+            category="Ноутбуки",
+            price=54990,
+            weight=1.8,
+            description="Ультрабук с процессором Intel Core i5 и SSD на 512 ГБ"
+        )
+        self.product_catalog.add_product(
+            name="Наушники Sony WH-1000XM4",
+            category="Аксессуары",
+            price=29990,
+            weight=0.25,
+            description="Беспроводные наушники с шумоподавлением"
+        )
 
-    def main_menu(self):
-        while True:
-            print("\n=== ГЛАВНОЕ МЕНЮ ===")
-            print("1. Просмотр каталога товаров")
-            print("2. Добавить товар в корзину")
-            print("3. Удалить товар из корзины")
-            print("4. Просмотр корзины")
-            print("5. Сортировка корзины")
-            print("6. Расчет итоговой суммы")
-            print("7. Выход")
-
-            choice = input("Выберите действие: ")
-
-            if choice == '1':
-                self.catalog.display_catalog()
-            elif choice == '2':
-                self.add_to_cart_interface()
-            elif choice == '3':
-                self.remove_from_cart_interface()
-            elif choice == '4':
-                self.catalog.display_cart()
-            elif choice == '5':
-                self.sort_cart_interface()
-            elif choice == '6':
-                self.catalog.display_totals()
-            elif choice == '7':
-                print("До свидания!")
-                break
-            else:
-                print("Неверный ввод, попробуйте еще раз.")
+        # Добавляем правила скидок
+        self.cart.add_discount_rule('percentage', value=5)  # 5% скидка
+        self.cart.add_discount_rule('fixed', value=1000)  # 1000 руб. скидка
+        self.cart.add_discount_rule('threshold', threshold=100000,
+                                    discount_type='percentage', discount_value=10)  # 10% при заказе от 100000 руб.
 
     def add_to_cart_interface(self):
+        """Интерфейс добавления товара в корзину"""
+        self.product_catalog.display_catalog()
         product_id = int(input("Введите ID товара: "))
         quantity = int(input("Введите количество (по умолчанию 1): ") or 1)
-        self.catalog.add_to_cart(product_id, quantity)
+        self.cart.add_item(product_id, quantity)
 
     def remove_from_cart_interface(self):
+        """Интерфейс удаления товара из корзины"""
+        self.cart.display()
         product_id = int(input("Введите ID товара: "))
         quantity = input("Введите количество для удаления (оставьте пустым для удаления всех): ")
         quantity = int(quantity) if quantity else None
-        self.catalog.remove_from_cart(product_id, quantity)
+        self.cart.remove_item(product_id, quantity)
 
     def sort_cart_interface(self):
+        """Интерфейс сортировки корзины"""
         print("\nДоступные алгоритмы сортировки: bubble, insertion, quick, merge")
         algorithm = input("Выберите алгоритм (по умолчанию quick): ") or 'quick'
 
@@ -482,8 +399,47 @@ class TextInterface:
 
         reverse = input("Сортировать по убыванию? (y/n, по умолчанию n): ").lower() == 'y'
 
-        self.catalog.sort_cart(algorithm=algorithm, key=key, reverse=reverse)
+        self.cart.items = Sorter.sort(self.cart.items, algorithm=algorithm, key=key, reverse=reverse)
+        print("Корзина успешно отсортирована.")
+        self.cart.display()
 
+    def main_menu(self):
+        """Главное меню"""
+        while True:
+            print("\n=== ГЛАВНОЕ МЕНЮ ===")
+            print("1. Просмотр каталога товаров")
+            print("2. Добавить товар в корзину")
+            print("3. Удалить товар из корзины")
+            print("4. Просмотр корзины")
+            print("5. Сортировка корзины")
+            print("6. Расчет итоговой суммы")
+            print("7. Выход")
+
+            choice = input("Выберите действие: ")
+
+            if choice == '1':
+                self.product_catalog.display_catalog()
+            elif choice == '2':
+                self.add_to_cart_interface()
+            elif choice == '3':
+                self.remove_from_cart_interface()
+            elif choice == '4':
+                self.cart.display()
+            elif choice == '5':
+                self.sort_cart_interface()
+            elif choice == '6':
+                self.cart.display_totals()
+            elif choice == '7':
+                print("До свидания!")
+                break
+            else:
+                print("Неверный ввод, попробуйте еще раз.")
+
+
+# Запуск программы
+if __name__ == "__main__":
+    interface = TextInterface()
+    interface.main_menu()
 
 # Пример использования
 if __name__ == "__main__":
