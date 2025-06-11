@@ -436,15 +436,29 @@ class TextInterface:
                 print("Неверный ввод, попробуйте еще раз.")
 
 
-# Запуск программы
-if __name__ == "__main__":
-    interface = TextInterface()
-    interface.main_menu()
 
-# Пример использования
+# Запуск программы
+
+interface = TextInterface()
+interface.main_menu()
+
+# Добавляем товары в корзину (имитация пользовательского ввода)
+interface.cart.add_item(1, 2)  # 2 смартфона
+interface.cart.add_item(2, 1)  # 1 ноутбук
+
+print("\nДемонстрация работы скидок:")
+interface.cart.display_totals()
+
+# Добавим еще товаров, чтобы активировать пороговую скидку
+interface.cart.add_item(3, 2)  # 2 наушников
+
+print("\nПосле добавления товаров для пороговой скидки:")
+interface.cart.display_totals()
+
+
 if __name__ == "__main__":
     catalog = Product()
-    # Добавляем товары
+
     phone_id = catalog.add_product(
         name="Смартфон Samsung Galaxy S21",
         category="Смартфоны",
@@ -461,10 +475,10 @@ if __name__ == "__main__":
         description="Ультрабук с процессором Intel Core i5 и SSD на 512 ГБ"
     )
 
-    # Выводим каталог
+
     catalog.display_catalog()
 
-    # Редактируем товар
+
     catalog.edit_product(
         phone_id,
         name="Смартфон Samsung Galaxy S21 Ultra",
@@ -472,24 +486,24 @@ if __name__ == "__main__":
         description="Флагманский смартфон с S-Pen, AMOLED-экраном и 108MP камерой"
     )
 
-    # Проверяем изменения
+
     phone = catalog.get_product_info(phone_id)
     print("\nОбновленная информация о товаре:")
     print(f"Название: {phone['name']}")
     print(f"Новая цена: {phone['price']} руб.")
     print(f"Новое описание: {phone['description']}")
 
-    # Удаляем товар
+
     catalog.delete_product(laptop_id)
 
-    # Проверяем каталог после удаления
+
     print("\nКаталог после удаления:")
     catalog.display_catalog()
 
-    # Итоговое количество товаров
+
     print(f"\nВсего товаров в каталоге: {catalog.get_total_products()}")
 
-    # Добавляем товары в каталог
+
     phone_id = catalog.add_product(
         name="Смартфон Samsung Galaxy S21",
         category="Смартфоны",
@@ -514,36 +528,35 @@ if __name__ == "__main__":
         description="С шумоподавлением"
     )
 
-    # Работа с корзиной
+
     catalog.add_to_cart(phone_id, 2)
     catalog.add_to_cart(laptop_id)
     catalog.add_to_cart(headphones_id, 3)
 
-    # Просмотр корзины
+
     catalog.display_cart()
 
-    # Удаление товаров из корзины
-    catalog.remove_from_cart(headphones_id, 2)  # Уменьшаем количество
-    catalog.remove_from_cart(phone_id)  # Полностью удаляем
 
-    # Просмотр изменений
+    catalog.remove_from_cart(headphones_id, 2)
+    catalog.remove_from_cart(phone_id)
+
+
     catalog.display_cart()
 
-    # Очистка корзины
+
     catalog.clear_cart()
     catalog.display_cart()
 
-# Пример использования с сортировкой
 
 
-    # Добавляем товары в каталог
+
+
     catalog.add_product("Смартфон Samsung", "Смартфоны", 69990, 0.17, "Флагман")
     catalog.add_product("Ноутбук ASUS", "Ноутбуки", 54990, 1.8, "Ультрабук")
     catalog.add_product("Наушники Sony", "Аксессуары", 29990, 0.25, "Беспроводные")
     catalog.add_product("Телевизор LG", "Телевизоры", 129990, 18.2, "OLED")
     catalog.add_product("Мышь Logitech", "Аксессуары", 4990, 0.1, "Беспроводная")
 
-    # Добавляем товары в корзину
     catalog.add_to_cart(1, 2)
     catalog.add_to_cart(2)
     catalog.add_to_cart(3, 3)
@@ -553,7 +566,7 @@ if __name__ == "__main__":
     print("\nИсходная корзина:")
     catalog.display_cart()
 
-    # Примеры сортировки
+
     print("\nСортировка пузырьком по цене (возрастание):")
     catalog.sort_cart(algorithm='bubble', key='price', reverse=False)
     catalog.display_cart()
@@ -570,15 +583,12 @@ if __name__ == "__main__":
     catalog.sort_cart(algorithm='merge', key='name', reverse=True)
     catalog.display_cart()
 
-# Пример использования с налогами и скидками
 
-
-    # Добавляем товары
     catalog.add_product("Смартфон", "Электроника", 50000, 0.2, "Флагман")
     catalog.add_product("Ноутбук", "Электроника", 80000, 2.5, "Игровой")
     catalog.add_product("Наушники", "Аксессуары", 15000, 0.3, "Беспроводные")
 
-    # Добавляем в корзину
+
     catalog.add_to_cart(1, 2)  # 2 смартфона
     catalog.add_to_cart(2)  # 1 ноутбук
     catalog.add_to_cart(3, 3)  # 3 наушников
@@ -610,7 +620,7 @@ if __name__ == "__main__":
 
 
 
-    # Запускаем интерфейс
+
     if __name__ == "__main__":
         # Создаем основной каталог
         main_catalog = Product()
